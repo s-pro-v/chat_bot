@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal Informacyjny - Bot</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body theme="dark">
+    <!-- TŁO DLA MODALI I PANELI -->
+    <div class="hud-modal-overlay" id="modal-overlay"></div>
+    <div class="settings-sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- MODAL - OSTRZEŻENIE SYSTEMOWE -->
+    <div class="system-alert-modal" id="alert-modal" data-alert-type="critical">
+        <div class="modal-content">
+            <div class="system-alert-header">
+                <h3 class="system-alert-title">OSTRZEŻENIE SYSTEMOWE</h3>
+                <button class="close-btn modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="system-alert-body">
+                <h4 class="system-alert-main-title">WYKRYTO ZAGROŻENIE BAZY</h4>
+                <p class="confirm-message">Zainicjowano procedurę alarmową na polecenie bota. Wymagana natychmiastowa
+                    reakcja operatora.</p>
+            </div>
+            <div class="system-alert-footer">
+                <button class="system-alert-btn cancel-btn modal-close"><i class="fas fa-ban"></i> ANULUJ</button>
+                <button class="system-alert-btn confirm-btn modal-close"><i class="fas fa-check"></i> POTWIERDŹ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOCZNY PANEL USTAWIEŃ -->
+    <div class="settings-sidebar" id="settings-sidebar">
+        <div class="settings-sidebar-header">
+            <span class="settings-sidebar-title">Konfiguracja Terminala</span>
+            <button class="close-settings sidebar-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="settings-sidebar-body p-4">
+            <p class="text-muted">Ten panel został otwarty. Możesz tu dodawać suwaki i opcje.</p>
+            <div class="setting-item mt-4">
+                <label class="setting-label">
+                    <i class="fas fa-wifi"></i> Status Połączenia
+                    <input type="checkbox" checked disabled>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div id="app">
+        <!-- NAGŁÓWEK -->
+        <header class="site-header">
+            <div class="container header-inner">
+                <div class="logo">
+                    <span class="logo-bracket">[</span> INFO_BOT <span class="logo-bracket">]</span>
+                </div>
+                <div class="header-actions">
+                    <button class=" btn-icon sm-btn" id="theme-toggle" title="Zmień motyw">
+                        <i class="fas fa-adjust"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- GŁÓWNA ZAWARTOŚĆ -->
+        <main class="container section">
+            <div class="section-header mb-0">
+                <h1 class="section-title">Terminal Głównego Węzła</h1>
+            </div>
+
+            <!-- ZAKŁADKI (TABS) -->
+            <div class="tab-container mt-4">
+                <!-- Nawigacja zakładek -->
+                <div class="tab-nav">
+                    <button class="tab-btn active" data-target="#tab-chat"><i class="fas fa-terminal"></i> Interfejs
+                        Czatu</button>
+                    <button class="tab-btn" data-target="#tab-database"><i class="fas fa-database"></i> Baza
+                        Danych</button>
+                </div>
+
+                <!-- ZAKŁADKA 1: CZAT -->
+                <div class="tab-pane active" id="tab-chat">
+                    <div class="panel chat-panel-wrapper">
+
+                        <!-- Techniczny nagłówek czatu -->
+                        <div class="chat-header">
+                            <span><i class="fas fa-satellite-dish"></i> WĘZEŁ KOMUNIKACYJNY</span>
+                            <span class="chat-status"><i class="fas fa-circle chat-status-icon"></i>ONLINE</span>
+                        </div>
+
+                        <!-- Okno wiadomości -->
+                        <div id="chat-messages" class="chat-messages-container">
+
+                            <!-- Dymek startowy -->
+                            <div class="chat-message chat-message-bot opis-bot">
+                                <div class="section-tag mb-1 chat-tag-bot">SYSTEM_BOT</div>
+                                <p class="mb-0 text-primary chat-msg-title">System online. W czym mogę pomóc?</p>
+                                <p class="mb-0 mt-1 chat-msg-subtext">Dostępne komendy: <strong>"otwórz
+                                        ustawienia"</strong>,
+                                    <strong>"włącz alarm"</strong>, <strong>"jasny motyw"</strong>, <strong>"pokaż
+                                        bazę"</strong>.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Pasek wprowadzania tekstu -->
+                        <div class="chat-input-area" style="position: relative;">
+                            <!-- NOWOŚĆ: Kontener na podpowiedzi -->
+                            <div id="chat-autocomplete" class="chat-autocomplete-list"></div>
+
+                            <form id="chat-form" class="flex gap-sm">
+                                <div class="chat-input-group">
+                                    <span class="chat-prompt-cursor">|</span>
+                                    <input type="text" id="chat-input" class="hud-input chat-input-field"
+                                        placeholder="Wprowadź polecenie (użyj strzałek ↑ ↓ do historii)"
+                                        autocomplete="off" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-ripple chat-send-btn" title="Wyślij">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ZAKŁADKA 2: BAZA DANYCH -->
+                <div class="tab-pane" id="tab-database">
+                    <div class="panel database-panel">
+                        <h3 class="text-highlight mb-4"><i class="fas fa-server"></i> Aktywne Moduły</h3>
+                        <div class="accordion">
+                            <div class="accordion-item open">
+                                <button class="accordion-header">
+                                    <span>Zapisy Logów Systemowych</span>
+                                    <i class="fas fa-chevron-down accordion-chevron"></i>
+                                </button>
+                                <div class="accordion-body">
+                                    Tu w przyszłości bot może ładować dane z serwera. Na razie to bezpieczna strefa
+                                    testowa.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
