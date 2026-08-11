@@ -283,17 +283,223 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!response.ok) throw new Error("Błąd serwera");
       const data = await response.json();
 
+      // Dodanie wiadomości do interfejsu
       addMessageToChat("bot", data.reply);
+
+      // DODANA LINIJKA: Wysłanie tekstu do syntezatora
+      speakBotResponse(data.reply);
 
       if (data.action) {
         executeBotAction(data.action);
       }
     } catch (error) {
       console.error("Błąd:", error);
-      addMessageToChat(
-        "bot",
-        "<em>[BŁĄD SYSTEMU]: Brak połączenia z serwerem produkcyjnym. Sprawdź status na Render.com.</em>",
-      );
+      const errorMsg =
+        "<em>[BŁĄD SYSTEMU]: Brak połączenia z serwerem produkcyjnym.</em>";
+      addMessageToChat("bot", errorMsg);
+      speakBotResponse("Błąd systemu. Brak połączenia z serwerem."); // Zapasowy komunikat głosowy błędu
     }
   });
 });
+// ==========================================
+// 7. OBSŁUGA POLECEŃ GŁOSOWYCH (Web Speech API)
+// ==========================================
+const voiceBtn = document.getElementById("voice-btn");
+let isRecording = false;
+
+// Inicjalizacja natywnego API przeglądarki (kompatybilność z Chromium/Edge na Windows)
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.lang = "pl-PL";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    isRecording = true;
+    voiceBtn.classList.add("voice-active");
+    chatInput.placeholder = "[ NASŁUCHIWANIE AKTYWNE ] ...";
+  };
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    // Usunięcie ewentualnej kropki na końcu (częsty narzut rozpoznawania)
+    chatInput.value = transcript.replace(/\.$/, "");
+
+    // Możesz odkomentować poniższą linię, jeśli chcesz by polecenie wysyłało się automatycznie po wykryciu:
+    // chatForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+  };
+
+  recognition.onerror = (event) => {
+    console.error("Błąd modułu mowy: ", event.error);
+    resetVoiceUI();
+  };
+
+  recognition.onend = () => {
+    resetVoiceUI();
+  };
+} else {
+  // Ukrycie przycisku, jeśli środowisko nie obsługuje Web Speech API
+  if (voiceBtn) voiceBtn.style.display = "none";
+  console.warn(
+    "OSTRZEŻENIE: Brak wsparcia dla Web Speech API w obecnym środowisku.",
+  );
+}
+
+function resetVoiceUI() {
+  isRecording = false;
+  voiceBtn.classList.remove("voice-active");
+  chatInput.placeholder = "Wprowadź polecenie (użyj strzałek ↑ ↓ do historii)";
+}
+
+if (voiceBtn) {
+  voiceBtn.addEventListener("click", () => {
+    if (!recognition) return;
+
+    if (isRecording) {
+      recognition.stop();
+    } else {
+      recognition.start();
+    }
+  });
+}
+// ==========================================
+// 8. SYNTEZATOR MOWY BOTA (Text-to-Speech)
+// ==========================================
+const voiceOutputToggle = document.getElementById("voice-output-toggle");
+const voiceSelect = document.getElementById("voice-select");
+
+let isVoiceOutputEnabled = true;
+let preferredVoice = null;
+let availablePlVoices = [];
+window.currentUtterance = null;
+
+function loadSystemVoices() {
+  const allVoices = window.speechSynthesis.getVoices();
+  if (allVoices.length === 0) return;
+
+  // Pobranie tylko polskich głosów
+  availablePlVoices = allVoices.filter((v) => v.lang.includes("pl"));
+
+  if (voiceSelect) {
+    voiceSelect.innerHTML = "";
+
+    if (availablePlVoices.length === 0) {
+      const option = document.createElement("option");
+      option.textContent = "Brak polskich głosów w systemie";
+      voiceSelect.appendChild(option);
+    } else {
+      availablePlVoices.forEach((voice, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = `[${voice.lang}] ${voice.name}`;
+        voiceSelect.appendChild(option);
+      });
+    }
+  }
+
+  if (availablePlVoices.length > 0) {
+    // Domyślny priorytet (najlepszy dostępny głos)
+    preferredVoice =
+      availablePlVoices.find(
+        (v) => v.name.includes("Natural") || v.name.includes("Online"),
+      ) ||
+      availablePlVoices.find((v) => v.name.includes("Google")) ||
+      availablePlVoices.find((v) => v.name.includes("Zofia")) ||
+      availablePlVoices.find((v) => v.name.includes("Paulina")) ||
+      availablePlVoices[0];
+
+    // Zaznaczenie odpowiedniej opcji w select
+    if (voiceSelect) {
+      const matchIndex = availablePlVoices.indexOf(preferredVoice);
+      if (matchIndex > -1) {
+        voiceSelect.value = matchIndex;
+      }
+    }
+    console.log(
+      "[AUDIO_MODULE] Zainicjowano domyślny profil głosu:",
+      preferredVoice.name,
+    );
+  }
+}
+
+// Nasłuchiwanie na zmianę z poziomu panelu ustawień
+if (voiceSelect) {
+  voiceSelect.addEventListener("change", (e) => {
+    const selectedIndex = e.target.value;
+    if (availablePlVoices[selectedIndex]) {
+      preferredVoice = availablePlVoices[selectedIndex];
+      console.log("[AUDIO_MODULE] Przełączono na profil:", preferredVoice.name);
+
+      // Komunikat testowy przy zmianie
+      window.speechSynthesis.cancel();
+      window.currentUtterance = new SpeechSynthesisUtterance(
+        "Moduł załadowany",
+      );
+      window.currentUtterance.voice = preferredVoice;
+      window.currentUtterance.lang = "pl-PL";
+      window.speechSynthesis.speak(window.currentUtterance);
+    }
+  });
+}
+
+// Wymuszenie odświeżenia po wykryciu nowych paczek językowych
+window.speechSynthesis.onvoiceschanged = loadSystemVoices;
+loadSystemVoices();
+
+// Sterowanie głównym przełącznikiem audio (ikona w headerze)
+if (voiceOutputToggle) {
+  voiceOutputToggle.style.color = "var(--highlight-color)";
+
+  voiceOutputToggle.addEventListener("click", () => {
+    isVoiceOutputEnabled = !isVoiceOutputEnabled;
+    const icon = voiceOutputToggle.querySelector("i");
+
+    if (isVoiceOutputEnabled) {
+      icon.classList.remove("fa-volume-mute");
+      icon.classList.add("fa-volume-up");
+      voiceOutputToggle.style.color = "var(--highlight-color)";
+      voiceOutputToggle.title = "Moduł Audio: ONLINE";
+    } else {
+      icon.classList.remove("fa-volume-up");
+      icon.classList.add("fa-volume-mute");
+      voiceOutputToggle.style.color = "var(--text-muted)";
+      voiceOutputToggle.title = "Moduł Audio: OFFLINE";
+      window.speechSynthesis.cancel();
+    }
+  });
+}
+
+// Główna funkcja wyjściowa mowy
+function speakBotResponse(htmlText) {
+  if (!isVoiceOutputEnabled || !("speechSynthesis" in window)) return;
+
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = htmlText;
+  const cleanText = tempDiv.textContent || tempDiv.innerText || "";
+
+  if (!cleanText) return;
+
+  window.speechSynthesis.cancel();
+
+  window.currentUtterance = new SpeechSynthesisUtterance(cleanText);
+  window.currentUtterance.lang = "pl-PL";
+  window.currentUtterance.rate = 1.0;
+  window.currentUtterance.pitch = 1.0;
+
+  if (preferredVoice) {
+    window.currentUtterance.voice = preferredVoice;
+  }
+
+  window.currentUtterance.onstart = () =>
+    console.log("[AUDIO_MODULE] Strumieniowanie rozpoczęte...");
+  window.currentUtterance.onend = () =>
+    console.log("[AUDIO_MODULE] Strumieniowanie zakończone.");
+  window.currentUtterance.onerror = (e) =>
+    console.error("[AUDIO_MODULE] Błąd:", e.error);
+
+  window.speechSynthesis.speak(window.currentUtterance);
+}

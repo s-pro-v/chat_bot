@@ -49,6 +49,19 @@
                     <input type="checkbox" checked disabled>
                 </label>
             </div>
+
+            <!-- NOWY MODUŁ: Wybór silnika głosowego -->
+            <div class="setting-item mt-2">
+                <label class="setting-label">
+                    <i class="fas fa-bullhorn"></i> Moduł Głosowy
+                </label>
+                <div class="setting-control mt-2">
+                    <!-- Standardowy select dziedziczący klasę .hud-input z zachowaniem ostrych krawędzi -->
+                    <select id="voice-select" class="hud-input w-full">
+                        <option value="">Inicjalizacja modułów...</option>
+                    </select>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -60,7 +73,12 @@
                     <span class="logo-bracket">[</span> INFO_BOT <span class="logo-bracket">]</span>
                 </div>
                 <div class="header-actions">
-                    <button class=" btn-icon sm-btn" id="theme-toggle" title="Zmień motyw">
+                    <!-- NOWOŚĆ: Przycisk sterowania modułem audio -->
+                    <button class="btn-icon sm-btn" id="voice-output-toggle" title="Moduł Audio: ONLINE">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+
+                    <button class="btn-icon sm-btn" id="theme-toggle" title="Zmień motyw">
                         <i class="fas fa-adjust"></i>
                     </button>
                 </div>
@@ -110,7 +128,6 @@
 
                         <!-- Pasek wprowadzania tekstu -->
                         <div class="chat-input-area" style="position: relative;">
-                            <!-- NOWOŚĆ: Kontener na podpowiedzi -->
                             <div id="chat-autocomplete" class="chat-autocomplete-list"></div>
 
                             <form id="chat-form" class="flex gap-sm">
@@ -120,6 +137,13 @@
                                         placeholder="Wprowadź polecenie (użyj strzałek ↑ ↓ do historii)"
                                         autocomplete="off" required>
                                 </div>
+
+                                <!-- NOWY MODUŁ: Przycisk wprowadzania głosowego -->
+                                <button type="button" id="voice-btn" class="btn btn-outline chat-voice-btn"
+                                    title="Inicjuj wprowadzanie głosowe">
+                                    <i class="fas fa-microphone"></i>
+                                </button>
+
                                 <button type="submit" class="btn btn-primary btn-ripple chat-send-btn" title="Wyślij">
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
